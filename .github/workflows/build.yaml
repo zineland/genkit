@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: "master"
+          submodules: "recursive"
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - name: Build
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo build --release
+      - name: Run clippy
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo clippy --release --no-deps
+      - name: Run test
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo test --release
+      - name: Publish test
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo publish --dry-run
