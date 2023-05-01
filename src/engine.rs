@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{context::Context, jinja::init_environment, Entity, Generator};
+use crate::{context::Context, data, jinja::init_environment, Entity, Generator};
 
 use anyhow::Result;
 
@@ -44,6 +44,11 @@ where
         let env = self
             .generator
             .on_extend_environment(init_environment(), &entity);
+
+        if let Some(markdown_config) = self.generator.get_markdown_config(&entity) {
+            let mut guard = data::write();
+            guard.set_markdown_config(markdown_config);
+        }
 
         let context = Context::new();
         entity

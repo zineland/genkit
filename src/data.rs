@@ -12,7 +12,7 @@ use std::{
 use anyhow::Result;
 use dashmap::{try_result::TryResult, DashMap};
 use once_cell::sync::OnceCell;
-use parking_lot::{RwLock, RwLockReadGuard};
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use serde::{
     de,
     ser::{SerializeMap, SerializeSeq},
@@ -32,6 +32,10 @@ pub fn load<P: AsRef<Path>>(path: P) {
     GENKIT_DATA.get_or_init(|| {
         RwLock::new(GenkitData::new(path.as_ref().join(get_data_filename())).unwrap())
     });
+}
+
+pub fn write() -> RwLockWriteGuard<'static, GenkitData> {
+    GENKIT_DATA.get().unwrap().write()
 }
 
 pub fn read() -> RwLockReadGuard<'static, GenkitData> {

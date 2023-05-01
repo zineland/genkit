@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use clap::{Arg, ArgAction, Command};
+use entity::MarkdownConfig;
 use parking_lot::RwLock;
 
 mod build;
@@ -60,6 +61,10 @@ pub trait Generator {
 
     fn on_render(&self, env: &Environment, context: Context, entity: &Self::Entity) -> Result<()> {
         Ok(())
+    }
+
+    fn get_markdown_config(&self, entity: &Self::Entity) -> Option<MarkdownConfig> {
+        None
     }
 }
 
