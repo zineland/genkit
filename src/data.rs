@@ -22,32 +22,32 @@ use tokio::sync::watch::{self, Receiver};
 
 use crate::{entity::MarkdownConfig, helpers, html};
 
-static ZINE_DATA: OnceCell<RwLock<ZineData>> = OnceCell::new();
+static GENKIT_DATA: OnceCell<RwLock<GenkitData>> = OnceCell::new();
 // Atomic boolean to indicate if the data has been modified.
 // Currenly, mainly concerned with the `url_previews` field.
 static DIRTY: AtomicBool = AtomicBool::new(false);
 
 pub fn load<P: AsRef<Path>>(path: P) {
-    ZINE_DATA.get_or_init(|| RwLock::new(ZineData::new(path.as_ref()).unwrap()));
+    GENKIT_DATA.get_or_init(|| RwLock::new(GenkitData::new(path.as_ref()).unwrap()));
 }
 
-pub fn read() -> RwLockReadGuard<'static, ZineData> {
-    ZINE_DATA.get().unwrap().read()
+pub fn read() -> RwLockReadGuard<'static, GenkitData> {
+    GENKIT_DATA.get().unwrap().read()
 }
 
-pub fn write() -> RwLockWriteGuard<'static, ZineData> {
-    ZINE_DATA.get().unwrap().write()
+pub fn write() -> RwLockWriteGuard<'static, GenkitData> {
+    GENKIT_DATA.get().unwrap().write()
 }
 
-/// Export all data into the `zine-data.json` file.
-/// If the data is empty, we never create the `zine-data.json` file.
+/// Export all data into the `data.json` file.
+/// If the data is empty, we never create the json file.
 pub fn export<P: AsRef<Path>>(path: P) -> Result<()> {
     // Prevent repeatedly exporting the same data.
     // Otherwise will cause infinity auto reload.
     if DIRTY.load(Ordering::Relaxed) {
         let data = read();
         if !data.url_previews.is_empty() {
-            let mut file = File::create(path.as_ref().join("zine-data.json"))?;
+            let mut file = File::create(path.as_ref().join("data.json"))?;
             file.write_all(data.export_to_json()?.as_bytes())?;
         }
         DIRTY.store(false, Ordering::Relaxed);
@@ -116,7 +116,7 @@ impl<'de> de::Visitor<'de> for UrlPreviewInfoVisitor {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ZineData {
+pub struct GenkitData {
     #[serde(skip)]
     markdown_config: MarkdownConfig,
     // The preview tasks.
@@ -127,7 +127,7 @@ pub struct ZineData {
 }
 
 // Implement Serialize manually to keep urlPreviews ordered.
-impl Serialize for ZineData {
+impl Serialize for GenkitData {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -150,14 +150,14 @@ pub enum PreviewEvent {
     Failed(String),
 }
 
-impl ZineData {
+impl GenkitData {
     pub fn new(source: impl AsRef<Path>) -> Result<Self> {
-        let path = source.as_ref().join("zine-data.json");
+        let path = source.as_ref().join("data.json");
         if path.exists() {
             let json = fs::read_to_string(path)?;
             Ok(serde_json::from_str(&json)?)
         } else {
-            Ok(ZineData {
+            Ok(GenkitData {
                 markdown_config: MarkdownConfig::default(),
                 url_previews: Arc::new(DashMap::default()),
                 preview_tasks: DashMap::default(),

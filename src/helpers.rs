@@ -42,7 +42,7 @@ pub fn format_date(date: &Date) -> String {
 /// Split styles into string pair.
 ///
 /// ```rust
-/// use zine::helpers::split_styles;
+/// use genkit::helpers::split_styles;
 ///
 /// let pair = split_styles("color: #abcdef; font-size: 14px; background-image: url('/test.png');");
 /// assert_eq!(pair.get("color").unwrap(), &"#abcdef");

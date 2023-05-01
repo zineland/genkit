@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/genkit.svg)](https://crates.io/crates/genkit)
 ![Crates.io](https://img.shields.io/crates/d/genkit)
 [![license-apache](https://img.shields.io/badge/license-Apache-yellow.svg)](./LICENSE)
-[![dependency status](https://deps.rs/crate/zine/latest/status.svg)](https://deps.rs/crate/genkit)
+[![dependency status](https://deps.rs/crate/genkit/latest/status.svg)](https://deps.rs/crate/genkit)
 
 A common generator kit for static site generator.
 

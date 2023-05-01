@@ -12,9 +12,9 @@ use crate::context::Context;
 
 pub use markdown::MarkdownConfig;
 
-/// A trait represents the entity of zine config file.
+/// A trait represents the entity of config file.
 ///
-/// A zine entity contains two stage:
+/// An entity contains two stage:
 /// - **parse**, the stage the entity to parse its attribute, such as parse markdown to html.
 /// - **render**, the stage to render the entity to html file.
 ///

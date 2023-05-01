@@ -88,30 +88,8 @@ impl GenkitEngine {
         })
     }
 
-    fn copy_static_assets(&self) -> Result<()> {
-        let static_dir = self.source.join("static");
-        if static_dir.exists() {
-            copy_dir(&static_dir, &self.dest)?;
-        }
-
-        // Copy builtin static files into dest static dir.
-        let dest_static_dir = self.dest.join("static");
-        #[allow(clippy::needless_borrow)]
-        fs::create_dir_all(&dest_static_dir)?;
-
-        #[cfg(not(debug_assertions))]
-        include_dir::include_dir!("static").extract(dest_static_dir)?;
-        // Alwasy copy static directory in debug mode.
-        #[cfg(debug_assertions)]
-        copy_dir(Path::new("./static"), &self.dest)?;
-
-        Ok(())
-    }
-
     pub fn build(&mut self, _reload: bool) -> Result<()> {
         let instant = std::time::Instant::now();
-
-        self.copy_static_assets()?;
 
         println!("Build cost: {}ms", instant.elapsed().as_millis());
         Ok(())

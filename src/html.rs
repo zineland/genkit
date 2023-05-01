@@ -356,7 +356,7 @@ mod tests {
     #[test_case("<script src=\"{}\" />", "/static/hello.js"; "script")]
     #[test_case("<audio src=\"{}\" />", "/static/hello.mp3"; "audio")]
     #[test_case("<video src=\"{}\" />", "/static/hello.mp4"; "video")]
-    #[test_case("<meta content=\"{}\" />", "/static/zine-placeholder.svg"; "meta")]
+    #[test_case("<meta content=\"{}\" />", "/static/placeholder.svg"; "meta")]
     fn test_rewrite_html_cdn_url(html: &str, path: &str) {
         assert_eq!(
             String::from_utf8_lossy(
@@ -376,7 +376,7 @@ mod tests {
     #[test_case("<script src=\"{}\"/>", "/static/hello.js"; "script")]
     #[test_case("<audio src=\"{}\"/>", "/static/hello.mp3"; "audio")]
     #[test_case("<video src=\"{}\"/>", "/static/hello.mp4"; "video")]
-    #[test_case("<meta content=\"{}\" />", "/static/zine-placeholder.svg"; "meta")]
+    #[test_case("<meta content=\"{}\" />", "/static/placeholder.svg"; "meta")]
     fn test_not_rewrite_html_cdn_url(html: &str, path: &str) {
         let whole_url = format!("{}{}", CDN_URL, path);
         assert_eq!(
@@ -397,7 +397,7 @@ mod tests {
     #[test_case("<script src=\"{}\"/>", "static/hello.js"; "script")]
     #[test_case("<audio src=\"{}\"/>", "static/hello.mp3"; "audio")]
     #[test_case("<video src=\"{}\"/>", "static/hello.mp4"; "video")]
-    #[test_case("<meta content=\"{}\" />", "static/zine-placeholder.svg"; "meta")]
+    #[test_case("<meta content=\"{}\" />", "static/placeholder.svg"; "meta")]
     fn test_not_rewrite_html_cdn_url_relative_path(html: &str, path: &str) {
         assert_eq!(
             String::from_utf8_lossy(

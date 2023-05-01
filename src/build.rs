@@ -27,7 +27,7 @@ pub async fn watch_build<P: AsRef<Path>>(
         if watch {
             tokio::spawn(async move {
                 tokio::signal::ctrl_c().await.unwrap();
-                // Save zine data only when the process gonna exist
+                // Save data only when the process gonna exist
                 data::export(&source_path).unwrap();
                 std::process::exit(0);
             });
@@ -38,11 +38,15 @@ pub async fn watch_build<P: AsRef<Path>>(
             let watcher = debouncer.watcher();
             watcher.watch(&source, RecursiveMode::Recursive)?;
 
-            // Watch zine's templates and static directory in debug mode to support reload.
+            // Watch templates and static directory in debug mode to support reload.
             #[cfg(debug_assertions)]
             {
-                watcher.watch(Path::new("templates"), RecursiveMode::Recursive)?;
-                watcher.watch(Path::new("static"), RecursiveMode::Recursive)?;
+                for dir in &["templates", "static"] {
+                    let path = Path::new(dir);
+                    if path.exists() {
+                        watcher.watch(&path, RecursiveMode::Recursive)?;
+                    }
+                }
             }
 
             loop {
@@ -59,7 +63,7 @@ pub async fn watch_build<P: AsRef<Path>>(
                                         if let Some(sender) = sender.as_ref() {
                                             sender.send(())?;
                                         }
-                                        // Export zine data to file after build
+                                        // Export data to file after build
                                         data::export(&source).unwrap();
                                     }
                                     Err(err) => {

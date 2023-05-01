@@ -9,7 +9,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use crate::{build::watch_build};
+use crate::build::watch_build;
 use anyhow::Result;
 use futures::SinkExt;
 use hyper::{Body, Method, Request, Response, StatusCode};
@@ -18,12 +18,13 @@ use tokio::sync::broadcast::{self, Sender};
 use tower::Service;
 use tower_http::services::ServeDir;
 
-// The temporal build dir, mainly for `zine serve` command.
-static TEMP_ZINE_BUILD_DIR: &str = "__zine_build";
+// The temporal build dir, mainly for `serve` command.
+static TEMP_GENKIT_BUILD_DIR: &str = "__genkit_build";
 
 pub async fn run_serve(source: &str, mut port: u16, open_browser: bool) -> Result<()> {
     loop {
-        let tmp_dir = env::temp_dir().join(TEMP_ZINE_BUILD_DIR);
+        // TODO: add random path to avoid conflict.
+        let tmp_dir = env::temp_dir().join(TEMP_GENKIT_BUILD_DIR);
         if tmp_dir.exists() {
             // Remove cached build directory to invalidate the old cache.
             fs::remove_dir_all(&tmp_dir)?;
