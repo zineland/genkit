@@ -1,20 +1,24 @@
 use std::{path::Path, sync::mpsc, time::Duration};
 
-use crate::{data, engine::GenkitEngine};
+use crate::{data, engine::GenkitEngine, Generator};
 use anyhow::Result;
 use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode, DebouncedEventKind};
 use tokio::sync::broadcast::Sender;
 
-pub async fn watch_build<P: AsRef<Path>>(
+pub(crate) async fn watch_build<G, P: AsRef<Path>>(
+    generator: G,
     source: P,
     dest: P,
     watch: bool,
     sender: Option<Sender<()>>,
-) -> Result<()> {
+) -> Result<()>
+where
+    G: Generator + Send + 'static,
+{
     let source = std::fs::canonicalize(source)?;
-    let mut engine = GenkitEngine::new(&source, dest)?;
     let source_path = source.clone();
     data::load(&source);
+    let mut engine = GenkitEngine::new(&source, dest, generator)?;
     // Spawn the build process as a blocking task, avoid starving other tasks.
     let build_result = tokio::task::spawn_blocking(move || {
         engine.build(false)?;
@@ -44,7 +48,7 @@ pub async fn watch_build<P: AsRef<Path>>(
                 for dir in &["templates", "static"] {
                     let path = Path::new(dir);
                     if path.exists() {
-                        watcher.watch(&path, RecursiveMode::Recursive)?;
+                        watcher.watch(path, RecursiveMode::Recursive)?;
                     }
                 }
             }

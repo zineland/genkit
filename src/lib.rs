@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::{Arg, ArgAction, Command};
 use parking_lot::RwLock;
 
@@ -11,6 +13,10 @@ pub mod helpers;
 pub mod html;
 pub mod markdown;
 pub mod serve;
+
+pub use context::Context;
+pub use entity::Entity;
+pub use minijinja::Environment;
 
 use anyhow::Result;
 use serve::run_serve;
@@ -35,13 +41,31 @@ fn set_current_mode(mode: Mode) {
     *MODE.write() = mode;
 }
 
-// pub trait Genkit {
-//     fn build(&self, reload: bool) -> Result<()>;
-// }
+#[allow(unused_variables)]
+pub trait Generator {
+    type Entity: Entity;
 
-pub struct Genkit {
+    fn on_load(&self, source: &Path) -> Result<Self::Entity>;
+
+    fn on_reload(&self, source: &Path) -> Result<Self::Entity>;
+
+    fn on_extend_environment<'a>(
+        &self,
+        env: Environment<'a>,
+        entity: &Self::Entity,
+    ) -> Environment<'a> {
+        env
+    }
+
+    fn on_render(&self, env: &Environment, context: Context, entity: &Self::Entity) -> Result<()> {
+        Ok(())
+    }
+}
+
+pub struct Genkit<G> {
     name: &'static str,
     command: Command,
+    generator: G,
 }
 
 fn build_command(name: &'static str) -> Command {
@@ -76,10 +100,17 @@ fn build_command(name: &'static str) -> Command {
         )
 }
 
-impl Genkit {
-    pub fn new(name: &'static str) -> Self {
+impl<G> Genkit<G>
+where
+    G: Generator + Send + 'static,
+{
+    pub fn new(name: &'static str, generator: G) -> Self {
         let command = build_command(name);
-        Self { name, command }
+        Self {
+            name,
+            command,
+            generator,
+        }
     }
 
     pub async fn bootstrap(self) -> Result<()> {
@@ -97,7 +128,7 @@ impl Genkit {
                     .unwrap_or_else(|| "build".into());
                 let watch = arg_matches.get_flag("watch");
 
-                watch_build(&source, &dest, watch, None).await?;
+                watch_build(self.generator, &source, &dest, watch, None).await?;
                 println!("Build success! The build directory is `{dest}`.");
             }
             Some(("serve", arg_matches)) => {
@@ -106,10 +137,10 @@ impl Genkit {
                     .get_one::<String>("source")
                     .cloned()
                     .unwrap_or_else(|| ".".into());
-                let port = arg_matches.get_one::<u16>("port").cloned().unwrap_or(3000);
+                let port = arg_matches.get_one::<u16>("port").copied().unwrap_or(3000);
                 let open = arg_matches.get_flag("open");
 
-                run_serve(&source, port, open).await?;
+                run_serve(self.generator, &source, port, open).await?;
             }
             _ => {}
         }

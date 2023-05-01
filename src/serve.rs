@@ -9,7 +9,6 @@ use std::{
     task::{Context, Poll},
 };
 
-use crate::build::watch_build;
 use anyhow::Result;
 use futures::SinkExt;
 use hyper::{Body, Method, Request, Response, StatusCode};
@@ -18,10 +17,20 @@ use tokio::sync::broadcast::{self, Sender};
 use tower::Service;
 use tower_http::services::ServeDir;
 
+use crate::{build::watch_build, Generator};
+
 // The temporal build dir, mainly for `serve` command.
 static TEMP_GENKIT_BUILD_DIR: &str = "__genkit_build";
 
-pub async fn run_serve(source: &str, mut port: u16, open_browser: bool) -> Result<()> {
+pub(crate) async fn run_serve<G>(
+    generator: G,
+    source: &str,
+    mut port: u16,
+    open_browser: bool,
+) -> Result<()>
+where
+    G: Generator + Send + 'static,
+{
     loop {
         // TODO: add random path to avoid conflict.
         let tmp_dir = env::temp_dir().join(TEMP_GENKIT_BUILD_DIR);
@@ -51,7 +60,7 @@ pub async fn run_serve(source: &str, mut port: u16, open_browser: bool) -> Resul
 
                 let s = PathBuf::from(source);
                 tokio::spawn(async move {
-                    if let Err(err) = watch_build(s, tmp_dir, true, Some(tx)).await {
+                    if let Err(err) = watch_build(generator, s, tmp_dir, true, Some(tx)).await {
                         // handle the error here, for example by logging it or returning it to the caller
                         println!("Watch build error: {err}");
                     }
