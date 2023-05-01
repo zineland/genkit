@@ -26,9 +26,12 @@ static GENKIT_DATA: OnceCell<RwLock<GenkitData>> = OnceCell::new();
 // Atomic boolean to indicate if the data has been modified.
 // Currenly, mainly concerned with the `url_previews` field.
 static DIRTY: AtomicBool = AtomicBool::new(false);
+static DATA_FILENAME: OnceCell<&str> = OnceCell::new();
 
 pub fn load<P: AsRef<Path>>(path: P) {
-    GENKIT_DATA.get_or_init(|| RwLock::new(GenkitData::new(path.as_ref()).unwrap()));
+    GENKIT_DATA.get_or_init(|| {
+        RwLock::new(GenkitData::new(path.as_ref().join(get_data_filename())).unwrap())
+    });
 }
 
 pub fn read() -> RwLockReadGuard<'static, GenkitData> {
@@ -39,7 +42,15 @@ pub fn write() -> RwLockWriteGuard<'static, GenkitData> {
     GENKIT_DATA.get().unwrap().write()
 }
 
-/// Export all data into the `data.json` file.
+pub fn set_data_filename(filename: &'static str) {
+    DATA_FILENAME.set(filename).unwrap();
+}
+
+fn get_data_filename() -> &'static str {
+    DATA_FILENAME.get().unwrap_or(&"genkit.json")
+}
+
+/// Export all data into the json file.
 /// If the data is empty, we never create the json file.
 pub fn export<P: AsRef<Path>>(path: P) -> Result<()> {
     // Prevent repeatedly exporting the same data.
@@ -47,7 +58,7 @@ pub fn export<P: AsRef<Path>>(path: P) -> Result<()> {
     if DIRTY.load(Ordering::Relaxed) {
         let data = read();
         if !data.url_previews.is_empty() {
-            let mut file = File::create(path.as_ref().join("data.json"))?;
+            let mut file = File::create(path.as_ref().join(get_data_filename()))?;
             file.write_all(data.export_to_json()?.as_bytes())?;
         }
         DIRTY.store(false, Ordering::Relaxed);
@@ -152,7 +163,7 @@ pub enum PreviewEvent {
 
 impl GenkitData {
     pub fn new(source: impl AsRef<Path>) -> Result<Self> {
-        let path = source.as_ref().join("data.json");
+        let path = source.as_ref();
         if path.exists() {
             let json = fs::read_to_string(path)?;
             Ok(serde_json::from_str(&json)?)

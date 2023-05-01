@@ -63,7 +63,6 @@ pub trait Generator {
 }
 
 pub struct Genkit<G> {
-    name: &'static str,
     command: Command,
     generator: G,
 }
@@ -106,11 +105,11 @@ where
 {
     pub fn new(name: &'static str, generator: G) -> Self {
         let command = build_command(name);
-        Self {
-            name,
-            command,
-            generator,
-        }
+        Self { command, generator }
+    }
+
+    pub fn set_data_filename(&self, filename: &'static str) {
+        data::set_data_filename(filename);
     }
 
     pub async fn bootstrap(self) -> Result<()> {
