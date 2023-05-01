@@ -106,7 +106,7 @@ impl<'a> Heading<'a> {
         html::push_html(&mut heading, events.into_iter());
 
         let html = env
-            .get_template("heading.jinja")
+            .get_template("__genkit_heading.jinja")
             .expect("Get heading template failed.")
             .render(context! {
                 heading,
@@ -205,7 +205,7 @@ impl<'a> MarkdownRender<'a> {
                 let quote_block = QuoteBlock::parse(block).unwrap();
                 let html = self
                     .markdown_env
-                    .get_template("blocks/quote.jinja")
+                    .get_template("__genkit_quote.jinja")
                     .expect("Get quote template failed.")
                     .render(context!(quote => quote_block))
                     .expect("Render quote block failed.");

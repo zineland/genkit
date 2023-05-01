@@ -14,6 +14,20 @@ use serde_json::Value;
 // It is used for rendering html in some code blocks, such as `QuoteBlock`.
 pub fn init_environment<'a>() -> Environment<'a> {
     let mut env = Environment::new();
+    let templates = [
+        (
+            "__genkit_heading.jinja",
+            include_str!("../templates/heading.jinja"),
+        ),
+        (
+            "__genkit_quote.jinja",
+            include_str!("../templates/quote.jinja"),
+        ),
+    ];
+    for (name, template) in templates {
+        env.add_template(name, template).unwrap();
+    }
+
     env.add_function("markdown_to_html", markdown_to_html_function);
     env.add_function("now", now_function);
     env.add_filter("trim_start_matches", trim_start_matches_filter);
