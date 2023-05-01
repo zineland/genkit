@@ -1,6 +1,12 @@
 [package]
 name = "genkit"
 version = "0.1.0"
+description = "A common generator kit for static site generator."
+authors = ["Folyd"]
+homepage = "https://github.com/zineland/genkit"
+repository = "https://github.com/zineland/genkit"
+license = "Apache-2.0"
+readme = "README.md"
 edition = "2021"
 
 [features]

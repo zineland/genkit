@@ -5,7 +5,7 @@
 [![license-apache](https://img.shields.io/badge/license-Apache-yellow.svg)](./LICENSE)
 [![dependency status](https://deps.rs/crate/genkit/latest/status.svg)](https://deps.rs/crate/genkit)
 
-A common generator kit for static site generator.
+A common **gen**erator **kit** for static site generator.
 
 # Who use Genkit?
 
