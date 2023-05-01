@@ -12,7 +12,7 @@ use std::{
 use anyhow::Result;
 use dashmap::{try_result::TryResult, DashMap};
 use once_cell::sync::OnceCell;
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{RwLock, RwLockReadGuard};
 use serde::{
     de,
     ser::{SerializeMap, SerializeSeq},
@@ -36,10 +36,6 @@ pub fn load<P: AsRef<Path>>(path: P) {
 
 pub fn read() -> RwLockReadGuard<'static, GenkitData> {
     GENKIT_DATA.get().unwrap().read()
-}
-
-pub fn write() -> RwLockWriteGuard<'static, GenkitData> {
-    GENKIT_DATA.get().unwrap().write()
 }
 
 pub fn set_data_filename(filename: &'static str) {
@@ -174,10 +170,6 @@ impl GenkitData {
                 preview_tasks: DashMap::default(),
             })
         }
-    }
-
-    pub fn get_all_previews(&self) -> Arc<DashMap<String, UrlPreviewInfo>> {
-        Arc::clone(&self.url_previews)
     }
 
     pub fn get_preview(&self, url: &str) -> Option<UrlPreviewInfo> {

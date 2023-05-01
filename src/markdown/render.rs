@@ -2,8 +2,8 @@ use std::{collections::BTreeSet, mem};
 
 use crate::{
     code_blocks::{self, url_preview, CalloutBlock, CodeBlock, Fenced, QuoteBlock},
-    engine,
     entity::MarkdownConfig,
+    jinja::init_environment,
 };
 
 use minijinja::{context, Environment};
@@ -121,7 +121,7 @@ impl<'a> Heading<'a> {
 impl<'a> MarkdownRender<'a> {
     pub fn new(markdown_config: &'a MarkdownConfig) -> Self {
         MarkdownRender {
-            markdown_env: engine::init_lite_jinja_environment(),
+            markdown_env: init_environment(),
             markdown_config,
             code_block_fenced: None,
             processing_image: false,

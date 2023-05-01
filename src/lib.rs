@@ -3,16 +3,17 @@ use std::path::Path;
 use clap::{Arg, ArgAction, Command};
 use parking_lot::RwLock;
 
-pub mod build;
+mod build;
 pub mod code_blocks;
 pub mod context;
-pub mod data;
-pub mod engine;
+mod data;
+mod engine;
 pub mod entity;
 pub mod helpers;
 pub mod html;
+pub mod jinja;
 pub mod markdown;
-pub mod serve;
+mod serve;
 
 pub use context::Context;
 pub use entity::Entity;
