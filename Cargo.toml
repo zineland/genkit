@@ -1,6 +1,6 @@
 [package]
 name = "genkit"
-version = "0.1.0"
+version = "0.1.1"
 description = "A common generator kit for static site generator."
 authors = ["Folyd"]
 homepage = "https://github.com/zineland/genkit"
