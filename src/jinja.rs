@@ -78,8 +78,8 @@ fn trim_start_matches_filter(s: &str, prefix: &str) -> String {
 }
 
 fn markdown_to_html_function(markdown: &str) -> String {
-    let zine_data = data::read();
-    let markdown_config = zine_data.get_markdown_config();
+    let guard = data::read();
+    let markdown_config = guard.get_markdown_config();
     MarkdownRender::new(markdown_config).render_html(markdown)
 }
 

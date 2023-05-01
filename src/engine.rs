@@ -43,7 +43,7 @@ where
 
         let env = self
             .generator
-            .on_extend_environment(init_environment(), &entity);
+            .on_extend_environment(source, init_environment(), &entity);
 
         if let Some(markdown_config) = self.generator.get_markdown_config(&entity) {
             let mut guard = data::write();
@@ -53,9 +53,10 @@ where
         let context = Context::new();
         entity
             .render(&env, context.clone(), self.dest.as_ref())
-            .expect("Render zine failed.");
+            .expect("Render failed.");
 
-        self.generator.on_render(&env, context, &entity)?;
+        self.generator
+            .on_render(&env, context, &entity, self.dest.as_ref())?;
         println!("Build cost: {}ms", instant.elapsed().as_millis());
         Ok(())
     }

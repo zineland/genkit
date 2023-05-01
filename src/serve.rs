@@ -27,6 +27,7 @@ pub(crate) async fn run_serve<G>(
     source: &str,
     mut port: u16,
     open_browser: bool,
+    bannel: Option<&str>,
 ) -> Result<()>
 where
     G: Generator + Send + 'static,
@@ -43,7 +44,9 @@ where
 
         match hyper::Server::try_bind(&addr) {
             Ok(addr) => {
-                // println!("{}", ZINE_BANNER);
+                if let Some(bannel) = bannel {
+                    println!("{}", bannel);
+                }
                 println!("listening on {}", serving_url);
 
                 let (tx, mut rx) = broadcast::channel(16);

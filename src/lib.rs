@@ -16,6 +16,7 @@ pub mod jinja;
 pub mod markdown;
 mod serve;
 
+pub use clap::ArgMatches;
 pub use context::Context;
 pub use entity::Entity;
 pub use minijinja::Environment;
@@ -28,14 +29,14 @@ use crate::build::watch_build;
 static MODE: RwLock<Mode> = parking_lot::const_rwlock(Mode::Unknown);
 
 #[derive(Copy, Clone)]
-pub(crate) enum Mode {
+pub enum Mode {
     Build,
     Serve,
     Unknown,
 }
 
 /// Get current run mode.
-pub(crate) fn current_mode() -> Mode {
+pub fn current_mode() -> Mode {
     *MODE.read()
 }
 
@@ -47,19 +48,30 @@ fn set_current_mode(mode: Mode) {
 pub trait Generator {
     type Entity: Entity;
 
+    fn on_command(&self, cmd: &str, arg_matches: &crate::ArgMatches) -> Result<()> {
+        Ok(())
+    }
+
     fn on_load(&self, source: &Path) -> Result<Self::Entity>;
 
     fn on_reload(&self, source: &Path) -> Result<Self::Entity>;
 
     fn on_extend_environment<'a>(
         &self,
+        source: &Path,
         env: Environment<'a>,
-        entity: &Self::Entity,
+        entity: &'a Self::Entity,
     ) -> Environment<'a> {
         env
     }
 
-    fn on_render(&self, env: &Environment, context: Context, entity: &Self::Entity) -> Result<()> {
+    fn on_render(
+        &self,
+        env: &Environment,
+        context: Context,
+        entity: &Self::Entity,
+        dest: &Path,
+    ) -> Result<()> {
         Ok(())
     }
 
@@ -71,6 +83,7 @@ pub trait Generator {
 pub struct Genkit<G> {
     command: Command,
     generator: G,
+    banner: Option<&'static str>,
 }
 
 fn build_command(name: &'static str) -> Command {
@@ -111,11 +124,26 @@ where
 {
     pub fn new(name: &'static str, generator: G) -> Self {
         let command = build_command(name);
-        Self { command, generator }
+        Self {
+            command,
+            generator,
+            banner: None,
+        }
     }
 
-    pub fn set_data_filename(&self, filename: &'static str) {
+    pub fn set_data_filename(self, filename: &'static str) -> Self {
         data::set_data_filename(filename);
+        self
+    }
+
+    pub fn set_banner(mut self, banner: &'static str) -> Self {
+        self.banner = Some(banner);
+        self
+    }
+
+    pub fn add_command(mut self, cmd: Command) -> Self {
+        self.command = self.command.subcommand(cmd);
+        self
     }
 
     pub async fn bootstrap(self) -> Result<()> {
@@ -145,7 +173,10 @@ where
                 let port = arg_matches.get_one::<u16>("port").copied().unwrap_or(3000);
                 let open = arg_matches.get_flag("open");
 
-                run_serve(self.generator, &source, port, open).await?;
+                run_serve(self.generator, &source, port, open, self.banner).await?;
+            }
+            Some((cmd, arg_matches)) => {
+                self.generator.on_command(cmd, arg_matches)?;
             }
             _ => {}
         }
