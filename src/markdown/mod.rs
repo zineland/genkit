@@ -4,6 +4,24 @@ use pulldown_cmark::{Options, Parser, Tag};
 mod render;
 pub use render::MarkdownRender;
 
+use crate::data;
+
+pub use self::render::Toc;
+
+pub fn render_html(markdown: &str) -> String {
+    let guard = data::read();
+    let markdown_config = guard.get_markdown_config();
+    MarkdownRender::new(markdown_config).render_html(markdown)
+}
+
+pub fn render_html_with_toc(markdown: &str) -> (String, Vec<Toc>) {
+    let guard = data::read();
+    let markdown_config = guard.get_markdown_config();
+    let mut mr = MarkdownRender::new(markdown_config);
+    let html = mr.render_html(markdown);
+    (html, mr.get_toc())
+}
+
 /// Extract the description from markdown content.
 ///
 /// The strategy is extract at most 200 plain chars from the

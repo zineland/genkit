@@ -70,6 +70,7 @@ pub trait Generator {
         env: &Environment,
         context: Context,
         entity: &Self::Entity,
+        source: &Path,
         dest: &Path,
     ) -> Result<()> {
         Ok(())

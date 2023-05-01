@@ -44,16 +44,16 @@ pub struct MarkdownRender<'a> {
     processing_image: bool,
     // The alt of the processing image
     image_alt: Option<CowStr<'a>>,
-    heading: Option<Heading<'a>>,
+    // The heading currently being processed.
+    curr_heading: Option<Heading<'a>>,
     levels: BTreeSet<usize>,
     render_mode: RenderMode,
-    /// Table of content.
-    pub toc: Vec<Heading<'a>>,
+    // All headings from markdown, aka, Table of content.
+    headings: Vec<Heading<'a>>,
 }
 
-/// Markdown heading.
 #[derive(Debug, Serialize)]
-pub struct Heading<'a> {
+pub struct Toc {
     // The relative depth.
     depth: usize,
     // Heading level: h1, h2 ... h6
@@ -65,17 +65,24 @@ pub struct Heading<'a> {
     id: Option<String>,
     // Heading title
     title: String,
-    #[serde(skip)]
+}
+
+/// Markdown heading.
+#[derive(Debug)]
+pub struct Heading<'a> {
+    toc: Toc,
     events: Vec<Event<'a>>,
 }
 
 impl<'a> Heading<'a> {
     fn new(level: usize, id: Option<&'a str>) -> Self {
         Heading {
-            depth: level,
-            level,
-            id: id.map(|i| i.to_owned()),
-            title: String::new(),
+            toc: Toc {
+                depth: level,
+                level,
+                id: id.map(|i| i.to_owned()),
+                title: String::new(),
+            },
             events: Vec::new(),
         }
     }
@@ -86,17 +93,17 @@ impl<'a> Heading<'a> {
     }
 
     fn push_text(&mut self, text: &str) -> &mut Self {
-        self.title.push_str(text);
+        self.toc.title.push_str(text);
         self
     }
 
     // Render heading to html.
     fn render(&mut self, env: &Environment<'a>) -> Event<'static> {
-        if self.id.is_none() {
+        if self.toc.id.is_none() {
             // Fallback to raw text as the anchor id if the user didn't specify an id.
-            self.id = Some(self.title.to_lowercase());
+            self.toc.id = Some(self.toc.title.to_lowercase());
             // Replace blank char with '-'.
-            if let Some(id) = self.id.as_mut() {
+            if let Some(id) = self.toc.id.as_mut() {
                 *id = id.replace(' ', "-");
             }
         }
@@ -110,8 +117,8 @@ impl<'a> Heading<'a> {
             .expect("Get heading template failed.")
             .render(context! {
                 heading,
-                level => self.level,
-                id => self.id,
+                level => self.toc.level,
+                id => self.toc.id,
             })
             .expect("Render heading failed.");
         Event::Html(html.into())
@@ -126,10 +133,10 @@ impl<'a> MarkdownRender<'a> {
             code_block_fenced: None,
             processing_image: false,
             image_alt: None,
-            heading: None,
+            curr_heading: None,
             levels: BTreeSet::new(),
             render_mode: RenderMode::Article,
-            toc: Vec::new(),
+            headings: Vec::new(),
         }
     }
 
@@ -139,13 +146,19 @@ impl<'a> MarkdownRender<'a> {
         self
     }
 
-    /// Rebuild the relative depth of toc items.
-    pub fn rebuild_toc_depth(&mut self) {
+    /// Get Table of Content list
+    pub fn get_toc(&mut self) -> Vec<Toc> {
+        let headings = mem::take(&mut self.headings);
+        headings.into_iter().map(|h| h.toc).collect()
+    }
+
+    // Rebuild the relative depth of toc items.
+    fn rebuild_toc_depth(&mut self) {
         let depths = Vec::from_iter(&self.levels);
-        self.toc.iter_mut().for_each(|item| {
-            item.depth = depths
+        self.headings.iter_mut().for_each(|item| {
+            item.toc.depth = depths
                 .iter()
-                .position(|&x| *x == item.level)
+                .position(|&x| *x == item.toc.level)
                 .expect("Invalid heading level")
                 + 1;
         });
@@ -172,7 +185,7 @@ impl<'a> MarkdownRender<'a> {
         let parser_events_iter = Parser::new_ext(markdown, Options::all()).into_offset_iter();
         let events = parser_events_iter
             .into_iter()
-            .filter_map(move |(event, _)| match event {
+            .filter_map(|(event, _)| match event {
                 Event::Start(tag) => self.visit_start_tag(&tag).resolve(|| Event::Start(tag)),
                 Event::End(tag) => self.visit_end_tag(&tag).resolve(|| Event::End(tag)),
                 Event::Code(code) => self.visit_code(&code).resolve(|| Event::Code(code)),
@@ -183,8 +196,10 @@ impl<'a> MarkdownRender<'a> {
                     .resolve(|| Event::Text(text)),
                 _ => Some(event),
             });
+
         let mut html = String::new();
         html::push_html(&mut html, events);
+        self.rebuild_toc_depth();
         html
     }
 
@@ -226,11 +241,11 @@ impl<'a> MarkdownRender<'a> {
                 Visiting::Ignore
             }
             Tag::Heading(level, id, _) => {
-                self.heading = Some(Heading::new(*level as usize, *id));
+                self.curr_heading = Some(Heading::new(*level as usize, *id));
                 Visiting::Ignore
             }
             _ => {
-                if let Some(heading) = self.heading.as_mut() {
+                if let Some(heading) = self.curr_heading.as_mut() {
                     heading.push_event(Event::Start(tag.to_owned()));
                     Visiting::Ignore
                 } else {
@@ -257,18 +272,18 @@ impl<'a> MarkdownRender<'a> {
                 Visiting::Ignore
             }
             Tag::Heading(..) => {
-                if let Some(mut heading) = self.heading.take() {
-                    self.levels.insert(heading.level);
+                if let Some(mut heading) = self.curr_heading.take() {
+                    self.levels.insert(heading.toc.level);
                     // Render heading event.
                     let event = heading.render(&self.markdown_env);
-                    self.toc.push(heading);
+                    self.headings.push(heading);
                     Visiting::Event(event)
                 } else {
                     Visiting::Ignore
                 }
             }
             _ => {
-                if let Some(heading) = self.heading.as_mut() {
+                if let Some(heading) = self.curr_heading.as_mut() {
                     heading.push_event(Event::End(tag.to_owned()));
                     Visiting::Ignore
                 } else {
@@ -279,7 +294,7 @@ impl<'a> MarkdownRender<'a> {
     }
 
     fn visit_text(&mut self, text: &CowStr<'a>) -> Visiting {
-        if let Some(heading) = self.heading.as_mut() {
+        if let Some(heading) = self.curr_heading.as_mut() {
             heading
                 .push_text(text.as_ref())
                 .push_event(Event::Text(text.to_owned()));
@@ -316,7 +331,7 @@ impl<'a> MarkdownRender<'a> {
     }
 
     fn visit_code(&mut self, code: &CowStr<'a>) -> Visiting {
-        if let Some(heading) = self.heading.as_mut() {
+        if let Some(heading) = self.curr_heading.as_mut() {
             heading
                 .push_text(code.as_ref())
                 .push_event(Event::Code(code.to_owned()));

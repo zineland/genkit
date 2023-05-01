@@ -1,8 +1,12 @@
 use std::{fs, path::Path};
 
 use crate::{
-    context::Context, current_mode, data, entity::MarkdownConfig, html::rewrite_html_base_url,
-    markdown::MarkdownRender, Mode,
+    context::Context,
+    current_mode,
+    entity::MarkdownConfig,
+    html::rewrite_html_base_url,
+    markdown::{self, MarkdownRender},
+    Mode,
 };
 
 use anyhow::Result;
@@ -92,9 +96,7 @@ fn trim_start_matches_filter(s: &str, prefix: &str) -> String {
 }
 
 fn markdown_to_html_function(markdown: &str) -> String {
-    let guard = data::read();
-    let markdown_config = guard.get_markdown_config();
-    MarkdownRender::new(markdown_config).render_html(markdown)
+    markdown::render_html(markdown)
 }
 
 fn markdown_to_rss_function(markdown: &str) -> String {

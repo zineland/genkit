@@ -33,6 +33,7 @@ where
     pub fn build(&mut self, reload: bool) -> Result<()> {
         let instant = std::time::Instant::now();
         let source = self.source.as_ref();
+        let dest = self.dest.as_ref();
         let mut entity = if reload {
             self.generator.on_reload(source)?
         } else {
@@ -52,11 +53,11 @@ where
 
         let context = Context::new();
         entity
-            .render(&env, context.clone(), self.dest.as_ref())
+            .render(&env, context.clone(), dest)
             .expect("Render failed.");
 
         self.generator
-            .on_render(&env, context, &entity, self.dest.as_ref())?;
+            .on_render(&env, context, &entity, source, dest)?;
         println!("Build cost: {}ms", instant.elapsed().as_millis());
         Ok(())
     }
