@@ -1,5 +1,6 @@
 use anyhow::Ok;
-use genkit::{Entity, Generator, Genkit};
+use clap::Command;
+use genkit::{Cmd, Entity, Generator, Genkit};
 
 struct App {}
 
@@ -36,11 +37,41 @@ impl Generator for App {
     }
 }
 
+struct VersionCmd;
+
+#[async_trait::async_trait]
+impl Cmd for VersionCmd {
+    fn on_init(&self) -> clap::Command {
+        Command::new("version")
+    }
+
+    async fn on_execute(&self, _matches: &clap::ArgMatches) -> anyhow::Result<()> {
+        println!("Version command");
+        Ok(())
+    }
+}
+
+struct PublishCmd;
+
+#[async_trait::async_trait]
+impl Cmd for PublishCmd {
+    fn on_init(&self) -> clap::Command {
+        Command::new("publish")
+    }
+
+    async fn on_execute(&self, _matches: &clap::ArgMatches) -> anyhow::Result<()> {
+        println!("Publish command");
+        Ok(())
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let app = App {};
     Genkit::new("note", app)
         .set_banner("NOTE")
+        .add_command(VersionCmd)
+        .add_command(PublishCmd)
         .bootstrap()
         .await?;
     Ok(())

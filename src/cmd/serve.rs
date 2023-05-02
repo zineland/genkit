@@ -17,7 +17,8 @@ use tokio::sync::broadcast::{self, Sender};
 use tower::Service;
 use tower_http::services::ServeDir;
 
-use crate::{build::watch_build, Generator};
+use super::build::watch_build;
+use crate::Generator;
 
 // The temporal build dir, mainly for `serve` command.
 static TEMP_GENKIT_BUILD_DIR: &str = "__genkit_build";

@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
-use clap::{Arg, ArgAction, Command};
+use clap::Command;
 use entity::MarkdownConfig;
 use parking_lot::RwLock;
 
-mod build;
+mod cmd;
 pub mod code_blocks;
 pub mod context;
 mod data;
@@ -14,17 +14,14 @@ pub mod helpers;
 pub mod html;
 pub mod jinja;
 pub mod markdown;
-mod serve;
 
 pub use clap::ArgMatches;
+pub use cmd::Cmd;
 pub use context::Context;
 pub use entity::Entity;
 pub use minijinja::Environment;
 
 use anyhow::Result;
-use serve::run_serve;
-
-use crate::build::watch_build;
 
 static MODE: RwLock<Mode> = parking_lot::const_rwlock(Mode::Unknown);
 
@@ -47,10 +44,6 @@ fn set_current_mode(mode: Mode) {
 #[allow(unused_variables)]
 pub trait Generator {
     type Entity: Entity;
-
-    fn on_command(&self, cmd: &str, arg_matches: &crate::ArgMatches) -> Result<()> {
-        Ok(())
-    }
 
     fn on_load(&self, source: &Path) -> Result<Self::Entity>;
 
@@ -82,41 +75,10 @@ pub trait Generator {
 }
 
 pub struct Genkit<G> {
-    command: Command,
+    root_command: Command,
+    command_map: HashMap<String, Box<dyn Cmd>>,
     generator: G,
     banner: Option<&'static str>,
-}
-
-fn build_command(name: &'static str) -> Command {
-    Command::new(name)
-        .subcommand(
-            Command::new("build")
-                .args([
-                    Arg::new("source").help(format!("The source directory of {name} site")),
-                    Arg::new("dest").help("The destination directory. Default dest dir is `build`"),
-                    Arg::new("watch")
-                        .short('w')
-                        .action(ArgAction::SetTrue)
-                        .help("Enable watching"),
-                ])
-                .about("Build the site"),
-        )
-        .subcommand(
-            Command::new("serve")
-                .args([
-                    Arg::new("source").help(format!("The source directory of {name} site")),
-                    Arg::new("port")
-                        .short('p')
-                        .value_parser(clap::value_parser!(u16))
-                        .default_missing_value("3000")
-                        .help("The port to listen"),
-                    Arg::new("open")
-                        .short('o')
-                        .action(ArgAction::SetTrue)
-                        .help("Auto open browser after server started"),
-                ])
-                .about("Serve the site"),
-        )
 }
 
 impl<G> Genkit<G>
@@ -124,9 +86,9 @@ where
     G: Generator + Send + 'static,
 {
     pub fn new(name: &'static str, generator: G) -> Self {
-        let command = build_command(name);
         Self {
-            command,
+            root_command: cmd::build_root_command(name),
+            command_map: HashMap::new(),
             generator,
             banner: None,
         }
@@ -142,14 +104,18 @@ where
         self
     }
 
-    pub fn add_command(mut self, cmd: Command) -> Self {
-        self.command = self.command.subcommand(cmd);
+    pub fn add_command<C: Cmd + 'static>(mut self, cmd: C) -> Self {
+        let command = cmd.on_init();
+        let name = command.get_name().to_owned();
+        self.root_command = self.root_command.subcommand(command);
+        self.command_map.insert(name, Box::new(cmd));
         self
     }
 
-    pub async fn bootstrap(self) -> Result<()> {
-        let matches = self.command.get_matches();
-        match matches.subcommand() {
+    pub async fn bootstrap(mut self) -> Result<()> {
+        self = self.add_command(cmd::LintCmd);
+
+        match self.root_command.get_matches().subcommand() {
             Some(("build", arg_matches)) => {
                 set_current_mode(Mode::Build);
                 let source = arg_matches
@@ -162,7 +128,7 @@ where
                     .unwrap_or_else(|| "build".into());
                 let watch = arg_matches.get_flag("watch");
 
-                watch_build(self.generator, &source, &dest, watch, None).await?;
+                cmd::watch_build(self.generator, &source, &dest, watch, None).await?;
                 println!("Build success! The build directory is `{dest}`.");
             }
             Some(("serve", arg_matches)) => {
@@ -174,10 +140,12 @@ where
                 let port = arg_matches.get_one::<u16>("port").copied().unwrap_or(3000);
                 let open = arg_matches.get_flag("open");
 
-                run_serve(self.generator, &source, port, open, self.banner).await?;
+                cmd::run_serve(self.generator, &source, port, open, self.banner).await?;
             }
-            Some((cmd, arg_matches)) => {
-                self.generator.on_command(cmd, arg_matches)?;
+            Some((name, arg_matches)) => {
+                if let Some(command) = self.command_map.get(name) {
+                    command.on_execute(arg_matches).await?;
+                }
             }
             _ => {}
         }

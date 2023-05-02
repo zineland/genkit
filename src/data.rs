@@ -176,6 +176,10 @@ impl GenkitData {
         }
     }
 
+    pub fn get_all_previews(&self) -> Arc<DashMap<String, UrlPreviewInfo>> {
+        Arc::clone(&self.url_previews)
+    }
+
     pub fn get_preview(&self, url: &str) -> Option<UrlPreviewInfo> {
         match self.url_previews.try_get(url) {
             TryResult::Present(info) => Some(info.to_owned()),
