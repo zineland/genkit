@@ -16,9 +16,10 @@ openssl-vendored = ["hyper-tls/vendored"]
 
 [dependencies]
 anyhow = "1.0"
-async-trait = "0.1.68"
+async-trait = "0.1"
 clap = { version = "4" }
 dashmap = { version = "5.4", features = ["serde"] }
+dyn-clone = "1.0"
 futures = { version = "0.3", default-features = false }
 html5ever = "0.26"
 hyper = { version = "0.14", features = ["client", "server", "tcp", "http1"] }

@@ -2,16 +2,22 @@ use pulldown_cmark::Event::{Code, End, HardBreak, Rule, SoftBreak, Start, Text};
 use pulldown_cmark::{Options, Parser, Tag};
 
 mod render;
-pub use render::MarkdownRender;
+mod visitor;
 
 use crate::data;
 
-pub use self::render::Toc;
+pub use render::MarkdownRender;
+pub use render::Toc;
+pub use visitor::MarkdownVisitor;
 
 pub fn render_html(markdown: &str) -> String {
     let guard = data::read();
     let markdown_config = guard.get_markdown_config();
-    MarkdownRender::new(markdown_config).render_html(markdown)
+    let mut mr = MarkdownRender::new(markdown_config);
+    if let Some(visitor) = data::get_markdown_visitor() {
+        mr.set_markdown_visitor(visitor);
+    }
+    mr.render_html(markdown)
 }
 
 pub fn render_html_with_toc(markdown: &str) -> (String, Vec<Toc>) {

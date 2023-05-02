@@ -15,6 +15,8 @@ use syntect::{
     parsing::SyntaxSet,
 };
 
+use super::MarkdownVisitor;
+
 static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
     let syntax_set: SyntaxSet =
         from_binary(include_bytes!("../../sublime/syntaxes/newlines.packdump"));
@@ -39,6 +41,7 @@ enum RenderMode {
 pub struct MarkdownRender<'a> {
     markdown_env: Environment<'a>,
     markdown_config: &'a MarkdownConfig,
+    visitor: Option<Box<dyn MarkdownVisitor + Send + Sync>>,
     code_block_fenced: Option<CowStr<'a>>,
     // Whether we are processing image parsing
     processing_image: bool,
@@ -130,6 +133,7 @@ impl<'a> MarkdownRender<'a> {
         MarkdownRender {
             markdown_env: init_environment(),
             markdown_config,
+            visitor: None,
             code_block_fenced: None,
             processing_image: false,
             image_alt: None,
@@ -138,6 +142,14 @@ impl<'a> MarkdownRender<'a> {
             render_mode: RenderMode::Article,
             headings: Vec::new(),
         }
+    }
+
+    pub fn set_markdown_visitor(
+        &mut self,
+        visitor: Box<dyn MarkdownVisitor + Send + Sync>,
+    ) -> &mut Self {
+        self.visitor = Some(visitor);
+        self
     }
 
     /// Enable RSS mode.
@@ -226,7 +238,13 @@ impl<'a> MarkdownRender<'a> {
                     .expect("Render quote block failed.");
                 Some(html)
             }
-            _ => None,
+            name => {
+                if let Some(visitor) = self.visitor.as_ref() {
+                    visitor.visit_custom_block(name, block)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -338,32 +356,12 @@ impl<'a> MarkdownRender<'a> {
             return Visiting::Ignore;
         }
 
-        // if let Some(maybe_author_id) = code.strip_prefix('@') {
-        //     let data = data::read();
-        //     if let Some(author) = data.get_author_by_id(maybe_author_id) {
-        //         // Render author code UI.
-        //         let html = AuthorCode(author)
-        //             .render()
-        //             .expect("Render author code failed.");
-        //         return Visiting::Event(Event::Html(html.into()));
-        //     }
-        // }
-        // else if code.starts_with('/') {
-        //     let data = data::read();
-        //     if let Some(article) = data.get_article_by_path(code.as_ref()) {
-        //         let html = InlineLink::new(&article.title, code, article.cover.as_ref())
-        //             .render()
-        //             .expect("Render inline linke failed.");
-        //         return Visiting::Event(Event::Html(html.into()));
-        //     }
-        // }
-        //  else if let Some(topic) = code.strip_prefix('#') {
-        //     let data = data::read();
-        //     if data.is_valid_topic(topic) {
-        //         let html = format!(r#"<a href="/topic/{topic}">#{topic}</a>"#);
-        //         return Visiting::Event(Event::Html(html.into()));
-        //     }
-        // }
+        if let Some(visitor) = self.visitor.as_ref() {
+            if let Some(html) = visitor.visit_code(code) {
+                return Visiting::Event(Event::Html(html.into()));
+            }
+        }
+
         Visiting::NotChanged
     }
 }

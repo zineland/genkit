@@ -19,6 +19,7 @@ pub use clap::ArgMatches;
 pub use cmd::Cmd;
 pub use context::Context;
 pub use entity::Entity;
+pub use markdown::MarkdownVisitor;
 pub use minijinja::Environment;
 
 use anyhow::Result;
@@ -96,6 +97,14 @@ where
 
     pub fn set_data_filename(self, filename: &'static str) -> Self {
         data::set_data_filename(filename);
+        self
+    }
+
+    pub fn set_markdown_visitor<V>(self, visitor: V) -> Self
+    where
+        V: MarkdownVisitor + Send + Sync + 'static,
+    {
+        data::set_markdown_visitor(Box::new(visitor));
         self
     }
 

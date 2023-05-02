@@ -20,13 +20,14 @@ use serde::{
 };
 use tokio::sync::watch::{self, Receiver};
 
-use crate::{entity::MarkdownConfig, helpers, html};
+use crate::{entity::MarkdownConfig, helpers, html, markdown::MarkdownVisitor};
 
 static GENKIT_DATA: OnceCell<RwLock<GenkitData>> = OnceCell::new();
 // Atomic boolean to indicate if the data has been modified.
 // Currenly, mainly concerned with the `url_previews` field.
 static DIRTY: AtomicBool = AtomicBool::new(false);
 static DATA_FILENAME: OnceCell<&str> = OnceCell::new();
+static MARKDOWN_VISITOR: OnceCell<Box<dyn MarkdownVisitor + Send + Sync>> = OnceCell::new();
 
 pub fn load<P: AsRef<Path>>(path: P) {
     GENKIT_DATA.get_or_init(|| {
@@ -48,6 +49,14 @@ pub fn set_data_filename(filename: &'static str) {
 
 fn get_data_filename() -> &'static str {
     DATA_FILENAME.get().unwrap_or(&"genkit.json")
+}
+
+pub fn set_markdown_visitor(visitor: Box<dyn MarkdownVisitor + Send + Sync>) {
+    MARKDOWN_VISITOR.set(visitor).unwrap();
+}
+
+pub fn get_markdown_visitor() -> Option<Box<dyn MarkdownVisitor + Send + Sync>> {
+    MARKDOWN_VISITOR.get().map(|v| dyn_clone::clone_box(&**v))
 }
 
 /// Export all data into the json file.
