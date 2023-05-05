@@ -20,22 +20,19 @@ use tower_http::services::ServeDir;
 use super::build::watch_build;
 use crate::Generator;
 
-// The temporal build dir, mainly for `serve` command.
-static TEMP_GENKIT_BUILD_DIR: &str = "__genkit_build";
-
 pub(crate) async fn run_serve<G>(
     generator: G,
     source: &str,
     mut port: u16,
     open_browser: bool,
+    name: &str,
     bannel: Option<&str>,
 ) -> Result<()>
 where
     G: Generator + Send + 'static,
 {
     loop {
-        // TODO: add random path to avoid conflict.
-        let tmp_dir = env::temp_dir().join(TEMP_GENKIT_BUILD_DIR);
+        let tmp_dir = env::temp_dir().join(format!("__{}_build", name));
         if tmp_dir.exists() {
             // Remove cached build directory to invalidate the old cache.
             fs::remove_dir_all(&tmp_dir)?;

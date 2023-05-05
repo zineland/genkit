@@ -16,8 +16,9 @@ pub trait Cmd {
     async fn on_execute(&self, arg_matches: &crate::ArgMatches) -> Result<()>;
 }
 
-pub(crate) fn build_root_command(name: &'static str) -> Command {
-    Command::new(name)
+pub(crate) fn build_root_command(root_command: Command) -> Command {
+    let name = root_command.get_name().to_owned();
+    root_command
         .subcommand(
             Command::new("build")
                 .args([

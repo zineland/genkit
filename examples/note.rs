@@ -69,10 +69,10 @@ impl Cmd for PublishCmd {
 async fn main() -> anyhow::Result<()> {
     let app = App {};
     Genkit::new("note", app)
-        .set_banner("NOTE")
+        .banner("NOTE")
         .add_command(VersionCmd)
         .add_command(PublishCmd)
-        .bootstrap()
+        .run()
         .await?;
     Ok(())
 }

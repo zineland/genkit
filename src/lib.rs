@@ -87,20 +87,24 @@ where
     G: Generator + Send + 'static,
 {
     pub fn new(name: &'static str, generator: G) -> Self {
+        Self::with_command(Command::new(name), generator)
+    }
+
+    pub fn with_command(command: Command, generator: G) -> Self {
         Self {
-            root_command: cmd::build_root_command(name),
+            root_command: cmd::build_root_command(command),
             command_map: HashMap::new(),
             generator,
             banner: None,
         }
     }
 
-    pub fn set_data_filename(self, filename: &'static str) -> Self {
+    pub fn data_filename(self, filename: &'static str) -> Self {
         data::set_data_filename(filename);
         self
     }
 
-    pub fn set_markdown_visitor<V>(self, visitor: V) -> Self
+    pub fn markdown_visitor<V>(self, visitor: V) -> Self
     where
         V: MarkdownVisitor + Send + Sync + 'static,
     {
@@ -108,7 +112,7 @@ where
         self
     }
 
-    pub fn set_banner(mut self, banner: &'static str) -> Self {
+    pub fn banner(mut self, banner: &'static str) -> Self {
         self.banner = Some(banner);
         self
     }
@@ -121,10 +125,12 @@ where
         self
     }
 
-    pub async fn bootstrap(mut self) -> Result<()> {
+    pub async fn run(mut self) -> Result<()> {
         self = self.add_command(cmd::LintCmd);
 
-        match self.root_command.get_matches().subcommand() {
+        let name = self.root_command.get_name().to_owned();
+        let matches = self.root_command.arg_required_else_help(true).get_matches();
+        match matches.subcommand() {
             Some(("build", arg_matches)) => {
                 set_current_mode(Mode::Build);
                 let source = arg_matches
@@ -149,7 +155,7 @@ where
                 let port = arg_matches.get_one::<u16>("port").copied().unwrap_or(3000);
                 let open = arg_matches.get_flag("open");
 
-                cmd::run_serve(self.generator, &source, port, open, self.banner).await?;
+                cmd::run_serve(self.generator, &source, port, open, &name, self.banner).await?;
             }
             Some((name, arg_matches)) => {
                 if let Some(command) = self.command_map.get(name) {
