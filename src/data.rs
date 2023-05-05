@@ -29,21 +29,21 @@ static DIRTY: AtomicBool = AtomicBool::new(false);
 static DATA_FILENAME: OnceCell<&str> = OnceCell::new();
 static MARKDOWN_VISITOR: OnceCell<Box<dyn MarkdownVisitor + Send + Sync>> = OnceCell::new();
 
-pub fn load<P: AsRef<Path>>(path: P) {
+pub(crate) fn load<P: AsRef<Path>>(path: P) {
     GENKIT_DATA.get_or_init(|| {
         RwLock::new(GenkitData::new(path.as_ref().join(get_data_filename())).unwrap())
     });
 }
 
-pub fn write() -> RwLockWriteGuard<'static, GenkitData> {
+pub(crate) fn write() -> RwLockWriteGuard<'static, GenkitData> {
     GENKIT_DATA.get().unwrap().write()
 }
 
-pub fn read() -> RwLockReadGuard<'static, GenkitData> {
+pub(crate) fn read() -> RwLockReadGuard<'static, GenkitData> {
     GENKIT_DATA.get().unwrap().read()
 }
 
-pub fn set_data_filename(filename: &'static str) {
+pub(crate) fn set_data_filename(filename: &'static str) {
     DATA_FILENAME.set(filename).unwrap();
 }
 
@@ -51,17 +51,17 @@ fn get_data_filename() -> &'static str {
     DATA_FILENAME.get().unwrap_or(&"genkit.json")
 }
 
-pub fn set_markdown_visitor(visitor: Box<dyn MarkdownVisitor + Send + Sync>) {
+pub(crate) fn set_markdown_visitor(visitor: Box<dyn MarkdownVisitor + Send + Sync>) {
     MARKDOWN_VISITOR.set(visitor).unwrap();
 }
 
-pub fn get_markdown_visitor() -> Option<Box<dyn MarkdownVisitor + Send + Sync>> {
+pub(crate) fn get_markdown_visitor() -> Option<Box<dyn MarkdownVisitor + Send + Sync>> {
     MARKDOWN_VISITOR.get().map(|v| dyn_clone::clone_box(&**v))
 }
 
 /// Export all data into the json file.
 /// If the data is empty, we never create the json file.
-pub fn export<P: AsRef<Path>>(path: P) -> Result<()> {
+pub(crate) fn export<P: AsRef<Path>>(path: P) -> Result<()> {
     // Prevent repeatedly exporting the same data.
     // Otherwise will cause infinity auto reload.
     if DIRTY.load(Ordering::Relaxed) {
@@ -171,7 +171,7 @@ pub enum PreviewEvent {
 }
 
 impl GenkitData {
-    pub fn new(source: impl AsRef<Path>) -> Result<Self> {
+    pub(crate) fn new(source: impl AsRef<Path>) -> Result<Self> {
         let path = source.as_ref();
         if path.exists() {
             let json = fs::read_to_string(path)?;
@@ -185,11 +185,11 @@ impl GenkitData {
         }
     }
 
-    pub fn get_all_previews(&self) -> Arc<DashMap<String, UrlPreviewInfo>> {
+    pub(crate) fn get_all_previews(&self) -> Arc<DashMap<String, UrlPreviewInfo>> {
         Arc::clone(&self.url_previews)
     }
 
-    pub fn get_preview(&self, url: &str) -> Option<UrlPreviewInfo> {
+    pub(crate) fn get_preview(&self, url: &str) -> Option<UrlPreviewInfo> {
         match self.url_previews.try_get(url) {
             TryResult::Present(info) => Some(info.to_owned()),
             TryResult::Absent => None,
@@ -202,7 +202,7 @@ impl GenkitData {
     /// Preview url asynchronously, return a tuple.
     /// The first bool argument indicating whether is a first time previewing.
     /// The second argument is the receiver to wait preview event finished.
-    pub fn preview_url(&self, url: &str) -> (bool, Receiver<Option<PreviewEvent>>) {
+    pub(crate) fn preview_url(&self, url: &str) -> (bool, Receiver<Option<PreviewEvent>>) {
         if let Some(rx) = self.preview_tasks.get(url) {
             // In the preview queue.
             (false, rx.clone())
@@ -235,12 +235,12 @@ impl GenkitData {
         }
     }
 
-    pub fn set_markdown_config(&mut self, config: MarkdownConfig) -> &mut Self {
+    pub(crate) fn set_markdown_config(&mut self, config: MarkdownConfig) -> &mut Self {
         self.markdown_config = config;
         self
     }
 
-    pub fn get_markdown_config(&self) -> &MarkdownConfig {
+    pub(crate) fn get_markdown_config(&self) -> &MarkdownConfig {
         &self.markdown_config
     }
 

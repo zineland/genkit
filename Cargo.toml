@@ -25,7 +25,7 @@ html5ever = "0.26"
 hyper = { version = "0.14", features = ["client", "server", "tcp", "http1"] }
 hyper-tls = "0.5"
 hyper-tungstenite = "0.9"
-lol_html = "0.4"
+
 markup5ever_rcdom = "0.2"
 minijinja = { version = "0.32", features = ["source"] }
 notify-debouncer-mini = { version = "0.2", default-features = false }

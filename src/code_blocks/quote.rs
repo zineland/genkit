@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct QuoteBlock {
+pub(crate) struct QuoteBlock {
     // The author name.
     // Plain text format.
     pub author: Option<String>,

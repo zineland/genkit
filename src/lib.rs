@@ -5,7 +5,7 @@ use entity::MarkdownConfig;
 use parking_lot::RwLock;
 
 mod cmd;
-pub mod code_blocks;
+mod code_blocks;
 pub mod context;
 mod data;
 mod engine;
@@ -17,6 +17,7 @@ pub mod markdown;
 
 pub use clap::ArgMatches;
 pub use cmd::Cmd;
+pub use code_blocks::CodeBlock;
 pub use context::Context;
 pub use entity::Entity;
 pub use markdown::MarkdownVisitor;

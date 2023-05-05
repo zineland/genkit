@@ -9,7 +9,7 @@ static DEFAULT_BG_COLOR: &str = "#e1eaff";
 static DEFAULT_BORDER_COLOR: &str = "#82a7fc";
 
 /// The CalloutBlock to highlight some pragraphs.
-pub struct CalloutBlock<'a> {
+pub(crate) struct CalloutBlock<'a> {
     bg_color: &'a str,
     border_color: &'a str,
     content: &'a str,

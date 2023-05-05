@@ -3,26 +3,23 @@ use std::collections::HashMap;
 use anyhow::{bail, Result};
 
 mod callout;
-mod inline_link;
 mod quote;
 pub mod url_preview;
 
-pub use inline_link::InlineLink;
-
-pub use self::{callout::CalloutBlock, quote::QuoteBlock};
+pub(crate) use self::{callout::CalloutBlock, quote::QuoteBlock};
 
 pub trait CodeBlock {
     fn render(&self) -> Result<String>;
 }
 
-pub const CALLOUT: &str = "callout";
-pub const QUOTE: &str = "quote";
-pub const URL_PREVIEW: &str = "urlpreview";
+pub(crate) const CALLOUT: &str = "callout";
+pub(crate) const QUOTE: &str = "quote";
+pub(crate) const URL_PREVIEW: &str = "urlpreview";
 
 const ALL_CODE_BLOCKS: &[&str] = &[CALLOUT, QUOTE, URL_PREVIEW];
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub struct Fenced<'a> {
+pub(crate) struct Fenced<'a> {
     pub name: &'a str,
     pub options: HashMap<String, &'a str>,
 }

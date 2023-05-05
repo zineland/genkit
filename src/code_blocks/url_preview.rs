@@ -6,7 +6,7 @@ use crate::data::{self, PreviewEvent, UrlPreviewInfo};
 
 use super::CodeBlock;
 
-pub(super) struct UrlPreviewBlock<'a> {
+pub(crate) struct UrlPreviewBlock<'a> {
     url: &'a str,
     info: UrlPreviewInfo,
     // Whether show the preview image. default to true.
@@ -14,7 +14,7 @@ pub(super) struct UrlPreviewBlock<'a> {
 }
 
 impl<'a> UrlPreviewBlock<'a> {
-    pub(super) fn new(
+    pub(crate) fn new(
         options: HashMap<String, &'a str>,
         url: &'a str,
         info: UrlPreviewInfo,
@@ -47,7 +47,7 @@ impl<'a> CodeBlock for UrlPreviewBlock<'a> {
     }
 }
 
-pub(super) struct UrlPreviewError<'a>(pub &'a str, pub &'a str);
+pub(crate) struct UrlPreviewError<'a>(pub &'a str, pub &'a str);
 
 impl<'a> CodeBlock for UrlPreviewError<'a> {
     fn render(&self) -> Result<String> {

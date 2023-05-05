@@ -218,7 +218,7 @@ impl<'a> MarkdownRender<'a> {
     /// Render code block. Return rendered HTML string if success,
     ///
     /// If the fenced is unsupported, we simply return `None`.
-    pub fn render_code_block(&self, fenced: Fenced, block: &'a str) -> Option<String> {
+    fn render_code_block(&self, fenced: Fenced, block: &'a str) -> Option<String> {
         match fenced.name {
             code_blocks::URL_PREVIEW => {
                 let url = block.trim();

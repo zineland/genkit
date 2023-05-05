@@ -23,7 +23,7 @@ pub fn init_environment<'a>() -> Environment<'a> {
         env.add_template(name, template).unwrap();
     }
 
-    env.add_function("markdown_to_html", markdown_to_html_function);
+    env.add_function("markdown_to_html", markdown::render_html);
     env.add_function("now", now_function);
     env.add_filter("trim_start_matches", trim_start_matches_filter);
     env.add_function("markdown_to_rss", markdown_to_rss_function);
@@ -38,10 +38,6 @@ fn now_function() -> String {
 
 fn trim_start_matches_filter(s: &str, prefix: &str) -> String {
     s.trim_start_matches(prefix).to_string()
-}
-
-fn markdown_to_html_function(markdown: &str) -> String {
-    markdown::render_html(markdown)
 }
 
 fn markdown_to_rss_function(markdown: &str) -> String {
