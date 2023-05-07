@@ -229,12 +229,17 @@ impl<'a> MarkdownRender<'a> {
                 Some(html)
             }
             code_blocks::QUOTE => {
-                let quote_block = QuoteBlock::parse(block).unwrap();
+                let quote = QuoteBlock::parse(block).unwrap();
                 let html = self
                     .markdown_env
                     .get_template("__genkit_quote.jinja")
                     .expect("Get quote template failed.")
-                    .render(context!(quote => quote_block))
+                    .render(context! {
+                        avatar => quote.avatar,
+                        author => quote.author,
+                        bio => quote.bio,
+                        content => quote.content,
+                    })
                     .expect("Render quote block failed.");
                 Some(html)
             }
