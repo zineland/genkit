@@ -254,13 +254,7 @@ impl<'a> MarkdownRender<'a> {
                     .expect("Render quote block failed.");
                 Some(html)
             }
-            _ => {
-                if let Some(visitor) = self.visitor.as_ref() {
-                    visitor.visit_custom_block(fenced, block)
-                } else {
-                    None
-                }
-            }
+            _ => None,
         }
     }
 
@@ -349,11 +343,17 @@ impl<'a> MarkdownRender<'a> {
             {
                 // Ignore url preview in RSS mode.
                 return Visiting::Ignore;
-            } else if fenced.is_custom_code_block() {
+            } else if fenced.is_builtin_code_block() {
                 let rendered_html = self.render_code_block(fenced, text);
                 if let Some(html) = rendered_html {
                     return Visiting::Event(Event::Html(html.into()));
                 }
+            } else if let Some(html) = self
+                .visitor
+                .as_ref()
+                .and_then(|v| v.visit_custom_block(&fenced, text))
+            {
+                return Visiting::Event(Event::Html(html.into()));
             } else if self.markdown_config.highlight_code {
                 // Syntax highlight
                 let html = self.highlight_syntax(fenced.name, text);

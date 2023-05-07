@@ -10,7 +10,7 @@ pub trait MarkdownVisitor: DynClone + fmt::Debug {
         None
     }
 
-    fn visit_custom_block(&self, fenced: Fenced, content: &str) -> Option<String> {
+    fn visit_custom_block(&self, fenced: &Fenced, content: &str) -> Option<String> {
         None
     }
 }

@@ -30,7 +30,7 @@ impl<'a> Fenced<'a> {
         Self::default()
     }
 
-    pub fn is_custom_code_block(&self) -> bool {
+    pub(crate) fn is_builtin_code_block(&self) -> bool {
         ALL_CODE_BLOCKS.contains(&self.name)
     }
 
@@ -88,7 +88,7 @@ mod tests {
         assert_eq!(options["border_color"], "#abcdef");
 
         let fenced = Fenced::parse("callout, bg_color #123456, border-color: #abcdef").unwrap();
-        assert!(fenced.is_custom_code_block());
+        assert!(fenced.is_builtin_code_block());
         assert_eq!(fenced.name, "callout");
 
         let options = fenced.options;
@@ -96,6 +96,6 @@ mod tests {
         assert_eq!(options["border_color"], "#abcdef");
 
         let fenced = Fenced::parse("rust").unwrap();
-        assert!(!fenced.is_custom_code_block());
+        assert!(!fenced.is_builtin_code_block());
     }
 }

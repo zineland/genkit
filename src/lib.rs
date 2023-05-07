@@ -17,7 +17,7 @@ pub mod markdown;
 
 pub use clap::ArgMatches;
 pub use cmd::Cmd;
-pub use code_blocks::CodeBlock;
+pub use code_blocks::{CodeBlock, Fenced};
 pub use context::Context;
 pub use entity::Entity;
 pub use markdown::MarkdownVisitor;
