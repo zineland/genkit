@@ -19,7 +19,7 @@ pub(crate) const URL_PREVIEW: &str = "urlpreview";
 const ALL_CODE_BLOCKS: &[&str] = &[CALLOUT, QUOTE, URL_PREVIEW];
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub(crate) struct Fenced<'a> {
+pub struct Fenced<'a> {
     pub name: &'a str,
     pub options: HashMap<String, &'a str>,
 }
@@ -34,7 +34,7 @@ impl<'a> Fenced<'a> {
         ALL_CODE_BLOCKS.contains(&self.name)
     }
 
-    pub fn parse(input: &'a str) -> Result<Self> {
+    pub(crate) fn parse(input: &'a str) -> Result<Self> {
         let input = input.trim_end_matches(',');
         if input.is_empty() {
             return Ok(Self::empty());

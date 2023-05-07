@@ -243,9 +243,9 @@ impl<'a> MarkdownRender<'a> {
                     .expect("Render quote block failed.");
                 Some(html)
             }
-            name => {
+            _ => {
                 if let Some(visitor) = self.visitor.as_ref() {
-                    visitor.visit_custom_block(name, block)
+                    visitor.visit_custom_block(fenced, block)
                 } else {
                     None
                 }
