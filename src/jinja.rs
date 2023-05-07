@@ -1,7 +1,4 @@
-use crate::{
-    entity::MarkdownConfig,
-    markdown::{self, MarkdownRender},
-};
+use crate::markdown::{self, _render_html};
 
 use minijinja::Environment;
 
@@ -41,11 +38,6 @@ fn trim_start_matches_filter(s: &str, prefix: &str) -> String {
 }
 
 fn markdown_to_rss_function(markdown: &str) -> String {
-    let markdown_config = MarkdownConfig {
-        highlight_code: false,
-        ..Default::default()
-    };
-    MarkdownRender::new(&markdown_config)
-        .enable_rss_mode()
-        .render_html(markdown)
+    let (html, _) = _render_html(markdown, false, true);
+    html
 }

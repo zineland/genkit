@@ -52,7 +52,7 @@ pub struct MarkdownRender<'a> {
     levels: BTreeSet<usize>,
     render_mode: RenderMode,
     // All headings from markdown, aka, Table of content.
-    headings: Vec<Heading<'a>>,
+    headings: Option<Vec<Heading<'a>>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -140,7 +140,7 @@ impl<'a> MarkdownRender<'a> {
             curr_heading: None,
             levels: BTreeSet::new(),
             render_mode: RenderMode::Article,
-            headings: Vec::new(),
+            headings: None,
         }
     }
 
@@ -158,22 +158,33 @@ impl<'a> MarkdownRender<'a> {
         self
     }
 
+    /// Enable Table of Content parsing.
+    pub fn enable_toc(&mut self) -> &mut Self {
+        self.headings = Some(Vec::new());
+        self
+    }
+
     /// Get Table of Content list
     pub fn get_toc(&mut self) -> Vec<Toc> {
-        let headings = mem::take(&mut self.headings);
-        headings.into_iter().map(|h| h.toc).collect()
+        if let Some(headings) = mem::take(&mut self.headings) {
+            headings.into_iter().map(|h| h.toc).collect()
+        } else {
+            Vec::new()
+        }
     }
 
     // Rebuild the relative depth of toc items.
     fn rebuild_toc_depth(&mut self) {
-        let depths = Vec::from_iter(&self.levels);
-        self.headings.iter_mut().for_each(|item| {
-            item.toc.depth = depths
-                .iter()
-                .position(|&x| *x == item.toc.level)
-                .expect("Invalid heading level")
-                + 1;
-        });
+        if let Some(headings) = self.headings.as_mut() {
+            let depths = Vec::from_iter(&self.levels);
+            headings.iter_mut().for_each(|item| {
+                item.toc.depth = depths
+                    .iter()
+                    .position(|&x| *x == item.toc.level)
+                    .expect("Invalid heading level")
+                    + 1;
+            });
+        }
     }
 
     fn highlight_syntax(&self, lang: &str, text: &str) -> String {
@@ -299,7 +310,9 @@ impl<'a> MarkdownRender<'a> {
                     self.levels.insert(heading.toc.level);
                     // Render heading event.
                     let event = heading.render(&self.markdown_env);
-                    self.headings.push(heading);
+                    if let Some(headings) = self.headings.as_mut() {
+                        headings.push(heading);
+                    }
                     Visiting::Event(event)
                 } else {
                     Visiting::Ignore

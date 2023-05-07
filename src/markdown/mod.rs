@@ -10,22 +10,34 @@ pub use render::MarkdownRender;
 pub use render::Toc;
 pub use visitor::MarkdownVisitor;
 
-pub fn render_html(markdown: &str) -> String {
+pub(crate) fn _render_html(
+    markdown: &str,
+    enable_toc: bool,
+    enable_rss_mode: bool,
+) -> (String, Vec<Toc>) {
     let guard = data::read();
     let markdown_config = guard.get_markdown_config();
     let mut mr = MarkdownRender::new(markdown_config);
+    if enable_rss_mode {
+        mr.enable_rss_mode();
+    }
+    if enable_toc {
+        mr.enable_toc();
+    }
     if let Some(visitor) = data::get_markdown_visitor() {
         mr.set_markdown_visitor(visitor);
     }
-    mr.render_html(markdown)
+    let html = mr.render_html(markdown);
+    (html, mr.get_toc())
+}
+
+pub fn render_html(markdown: &str) -> String {
+    let (html, _) = _render_html(markdown, false, false);
+    html
 }
 
 pub fn render_html_with_toc(markdown: &str) -> (String, Vec<Toc>) {
-    let guard = data::read();
-    let markdown_config = guard.get_markdown_config();
-    let mut mr = MarkdownRender::new(markdown_config);
-    let html = mr.render_html(markdown);
-    (html, mr.get_toc())
+    _render_html(markdown, true, false)
 }
 
 /// Extract the description from markdown content.
