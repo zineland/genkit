@@ -5,6 +5,7 @@ description = "A common generator kit for static site generator."
 authors = ["Folyd"]
 homepage = "https://github.com/zineland/genkit"
 repository = "https://github.com/zineland/genkit"
+documentation = "https://docs.rs/genkit"
 license = "Apache-2.0"
 readme = "README.md"
 edition = "2021"
@@ -20,12 +21,11 @@ async-trait = "0.1"
 clap = { version = "4" }
 dashmap = { version = "5.4", features = ["serde"] }
 dyn-clone = "1.0"
+fastwebsockets = { version = "0.4", features = ["upgrade"] }
 futures = { version = "0.3", default-features = false }
 html5ever = "0.26"
 hyper = { version = "0.14", features = ["client", "server", "tcp", "http1"] }
 hyper-tls = "0.5"
-hyper-tungstenite = "0.9"
-
 markup5ever_rcdom = "0.2"
 minijinja = { version = "0.32", features = ["source"] }
 notify-debouncer-mini = { version = "0.2", default-features = false }

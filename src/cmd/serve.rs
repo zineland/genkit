@@ -10,9 +10,8 @@ use std::{
 };
 
 use anyhow::Result;
-use futures::SinkExt;
+use fastwebsockets::Frame;
 use hyper::{Body, Method, Request, Response, StatusCode};
-use hyper_tungstenite::tungstenite::Message;
 use tokio::sync::broadcast::{self, Sender};
 use tower::Service;
 use tower_http::services::ServeDir;
@@ -116,9 +115,9 @@ impl Service<Request<Body>> for FallbackService {
             match (req.method(), path) {
                 (&Method::GET, "/live_reload") => {
                     // Check if the request is a websocket upgrade request.
-                    if hyper_tungstenite::is_upgrade_request(&req) {
+                    if fastwebsockets::upgrade::is_upgrade_request(&req) {
                         let (response, websocket) =
-                            hyper_tungstenite::upgrade(&mut req, None).unwrap();
+                            fastwebsockets::upgrade::upgrade(&mut req).unwrap();
 
                         // Spawn a task to handle the websocket connection.
                         tokio::spawn(async move {
@@ -126,7 +125,11 @@ impl Service<Request<Body>> for FallbackService {
                             loop {
                                 match reload_rx.recv().await {
                                     Ok(_) => {
-                                        if websocket.send(Message::text("reload")).await.is_err() {
+                                        if websocket
+                                            .write_frame(Frame::text("reload".as_bytes().into()))
+                                            .await
+                                            .is_err()
+                                        {
                                             // Ignore the send failure, the reason could be: Broken pipe
                                             break;
                                         }
