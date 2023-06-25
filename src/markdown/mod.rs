@@ -113,6 +113,11 @@ pub fn strip_markdown(markdown: &str) -> String {
     buffer
 }
 
+pub fn count_words(markdown: &str) -> usize {
+    let content = strip_markdown(markdown);
+    words_count::count(content).words
+}
+
 fn start_tag(tag: &Tag, buffer: &mut String) {
     match tag {
         Tag::CodeBlock(_) | Tag::List(_) => fresh_line(buffer),
@@ -147,6 +152,11 @@ mod tests {
 
     use super::*;
     use test_case::test_case;
+
+    #[test_case("# `Rust` is **Awesome**!")]
+    fn test_word_count(markdown: &str) {
+        assert_eq!(3, count_words(markdown))
+    }
 
     #[test_case("aaaa"; "case1")]
     fn test_extract_decription1(markdown: &str) {

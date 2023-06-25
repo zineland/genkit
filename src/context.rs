@@ -9,7 +9,7 @@ use anyhow::Result;
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Context {
     data: BTreeMap<String, Value>,
 }
@@ -127,11 +127,5 @@ impl Context {
     /// Checks if a value exists at a specific index.
     pub fn contains_key(&self, index: &str) -> bool {
         self.data.contains_key(index)
-    }
-}
-
-impl Default for Context {
-    fn default() -> Context {
-        Context::new()
     }
 }

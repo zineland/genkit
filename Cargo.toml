@@ -46,6 +46,7 @@ toml = "0.7"
 tower = { version = "0.4", features = ["make", "util"] }
 tower-http = { version = "0.4", features = ["fs"] }
 walkdir = "2"
+words-count = "0.1"
 
 [dev-dependencies]
 anyhow = { version = "1.0", features = ["backtrace"] }
