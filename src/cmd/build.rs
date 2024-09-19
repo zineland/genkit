@@ -38,7 +38,7 @@ where
 
             println!("Watching...");
             let (tx, rx) = mpsc::channel();
-            let mut debouncer = new_debouncer(Duration::from_millis(500), None, tx)?;
+            let mut debouncer = new_debouncer(Duration::from_millis(500), tx)?;
             let watcher = debouncer.watcher();
             watcher.watch(&source, RecursiveMode::Recursive)?;
 
