@@ -10,9 +10,15 @@ use std::{
 };
 
 use anyhow::Result;
+use bytes::Bytes;
 use fastwebsockets::Frame;
-use hyper::{Body, Method, Request, Response, StatusCode};
-use tokio::sync::broadcast::{self, Sender};
+use http_body_util::Full;
+use hyper::{body::Incoming, server::conn::http1, Method, Request, Response, StatusCode};
+use hyper_util::{rt::TokioIo, service::TowerToHyperService};
+use tokio::{
+    net::TcpListener,
+    sync::broadcast::{self, Sender},
+};
 use tower::Service;
 use tower_http::services::ServeDir;
 
@@ -39,8 +45,8 @@ where
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         let serving_url = format!("http://{addr}");
 
-        match hyper::Server::try_bind(&addr) {
-            Ok(addr) => {
+        match TcpListener::bind(addr).await {
+            Ok(listener) => {
                 if let Some(bannel) = bannel {
                     println!("{}", bannel);
                 }
@@ -65,28 +71,28 @@ where
                         println!("Watch build error: {err}");
                     }
                 });
+                let (stream, _) = listener.accept().await?;
+                let io = TokioIo::new(stream);
 
-                addr.serve(tower::make::Shared::new(serve_dir))
-                    .await
-                    .expect("server error");
+                let svc = TowerToHyperService::new(serve_dir);
+                if let Err(err) = http1::Builder::new().serve_connection(io, svc).await {
+                    println!("Error serving connection: {:?}", err);
+                }
                 break;
             }
-            Err(err) => {
+            Err(error) => {
                 // if the error is address already in use
-                if let Some(cause) = err.into_cause() {
-                    if let Some(inner) = cause.downcast_ref::<io::Error>() {
-                        if inner.kind() == io::ErrorKind::AddrInUse {
-                            port = promptly::prompt_default(
-                                "Address already in use, try another port?",
-                                port + 1,
-                            )?;
-                            continue;
-                        }
-                    }
-
-                    println!("Error: {}", cause);
-                    break;
+                // prompt the user to try another port
+                if error.kind() == io::ErrorKind::AddrInUse {
+                    port = promptly::prompt_default(
+                        "Address already in use, try another port?",
+                        port + 1,
+                    )?;
+                    continue;
                 }
+
+                println!("Error: {}", error);
+                break;
             }
         }
     }
@@ -99,8 +105,8 @@ struct FallbackService {
     tx: Sender<()>,
 }
 
-impl Service<Request<Body>> for FallbackService {
-    type Response = Response<Body>;
+impl Service<Request<Incoming>> for FallbackService {
+    type Response = Response<Full<Bytes>>;
     type Error = Infallible;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
@@ -108,7 +114,7 @@ impl Service<Request<Body>> for FallbackService {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, mut req: Request<Body>) -> Self::Future {
+    fn call(&mut self, mut req: Request<Incoming>) -> Self::Future {
         let mut reload_rx = self.tx.subscribe();
         let fut = async move {
             let path = req.uri().path();
@@ -142,16 +148,16 @@ impl Service<Request<Body>> for FallbackService {
                         });
 
                         // Return the response so the spawned future can continue.
-                        Ok(response)
+                        Ok(response.map(|_| Full::from("")))
                     } else {
-                        Ok(Response::new(Body::from("Not a websocket request!")))
+                        Ok(Response::new(Full::from("Not a websocket request!")))
                     }
                 }
                 _ => {
                     // Return 404 not found response.
                     let resp = Response::builder()
                         .status(StatusCode::NOT_FOUND)
-                        .body(Body::from("404 Not Found"))
+                        .body(Full::from("404 Not Found"))
                         .unwrap();
                     Ok(resp)
                 }

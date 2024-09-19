@@ -1,10 +1,8 @@
 use anyhow::Result;
-use hyper::{
-    body::{self, Buf},
-    http::HeaderValue,
-    Client, Request, Uri,
-};
-use hyper_tls::HttpsConnector;
+use bytes::Bytes;
+use http_body_util::{BodyExt, Empty};
+use hyper::{body::Buf, http::HeaderValue, Request, Uri};
+use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::{
     collections::HashMap,
@@ -67,8 +65,8 @@ pub fn split_styles(style: &str) -> HashMap<&str, &str> {
 }
 
 pub async fn fetch_url(url: &str) -> Result<impl Read> {
-    let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new());
-    let mut req = Request::new(Default::default());
+    let client = Client::builder(TokioExecutor::new()).build_http();
+    let mut req = Request::new(Empty::<Bytes>::new());
     *req.uri_mut() = url.parse::<Uri>()?;
     req.headers_mut().insert(
         "User-Agent",
@@ -95,7 +93,7 @@ pub async fn fetch_url(url: &str) -> Result<impl Read> {
         println!("{warning}");
         anyhow::bail!(warning);
     }
-    let bytes = body::to_bytes(resp.into_body()).await?;
+    let bytes = resp.into_body().collect().await?.to_bytes();
     Ok(bytes.reader())
 }
 

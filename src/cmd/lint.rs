@@ -1,10 +1,12 @@
 use std::{collections::HashMap, path::Path};
 
 use anyhow::Result;
+use bytes::Bytes;
 use clap::{Arg, Command};
 use futures::future::try_join_all;
-use hyper::{Client, Request};
-use hyper_tls::HttpsConnector;
+use http_body_util::Empty;
+use hyper::Request;
+use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 
 use crate::{data, Cmd};
 
@@ -87,8 +89,8 @@ async fn lint_project<P: AsRef<Path>>(source: P) -> Result<bool> {
 }
 
 async fn check_url(url: String) -> Result<(String, UrlCondition)> {
-    let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new());
-    let req = Request::head(url.as_str()).body(hyper::Body::empty())?;
+    let client = Client::builder(TokioExecutor::new()).build_http();
+    let req = Request::head(url.as_str()).body(Empty::<Bytes>::new())?;
     let resp = client.request(req).await?;
 
     let status = resp.status();
