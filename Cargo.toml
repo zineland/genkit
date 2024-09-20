@@ -24,7 +24,7 @@ dashmap = { version = "6.1", features = ["serde"] }
 dyn-clone = "1.0"
 fastwebsockets = { version = "0.8", features = ["upgrade"] }
 futures = { version = "0.3", default-features = false }
-html5ever = "0.26"
+html5ever = "0.27"
 http-body = "1.0.1"
 http-body-util = "0.1.2"
 hyper = { version = "1.4", features = ["client", "server", "http1"] }
@@ -35,14 +35,14 @@ hyper-util = { version = "0.1.8", features = [
     "client-legacy",
     "http1",
 ] }
-markup5ever_rcdom = "0.2"
+markup5ever_rcdom = "0.3"
 minijinja = { version = "2.3" }
 notify-debouncer-mini = { version = "0.4", default-features = false }
 once_cell = "1"
 opener = "0.7"
 parking_lot = "0.12"
 promptly = "0.3"
-pulldown-cmark = "0.9"
+pulldown-cmark = "0.12"
 rayon = "1.6"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"

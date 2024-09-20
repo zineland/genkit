@@ -8,6 +8,7 @@ use crate::{
 
 use minijinja::{context, Environment};
 use once_cell::sync::Lazy;
+use pulldown_cmark::TagEnd;
 use pulldown_cmark::*;
 use serde::Serialize;
 use syntect::{
@@ -78,12 +79,12 @@ pub struct Heading<'a> {
 }
 
 impl<'a> Heading<'a> {
-    fn new(level: usize, id: Option<&'a str>) -> Self {
+    fn new(level: usize, id: Option<String>) -> Self {
         Heading {
             toc: Toc {
                 depth: level,
                 level,
-                id: id.map(|i| i.to_owned()),
+                id,
                 title: String::new(),
             },
             events: Vec::new(),
@@ -264,12 +265,26 @@ impl<'a> MarkdownRender<'a> {
                 self.code_block_fenced = Some(name.clone());
                 Visiting::Ignore
             }
-            Tag::Image(..) => {
+            Tag::Image {
+                dest_url, title, ..
+            } => {
+                let alt = self.image_alt.take().unwrap_or_else(|| CowStr::from(""));
+                self.processing_image = false;
+
                 self.processing_image = true;
-                Visiting::Ignore
+                // Add loading="lazy" attribute for markdown image.
+                Visiting::Event(Event::Html(
+                    format!(
+                        "<img src=\"{dest_url}\" alt=\"{alt}\" title=\"{title}\" loading=\"lazy\">"
+                    )
+                    .into(),
+                ))
             }
-            Tag::Heading(level, id, _) => {
-                self.curr_heading = Some(Heading::new(*level as usize, *id));
+            Tag::Heading { level, id, .. } => {
+                self.curr_heading = Some(Heading::new(
+                    *level as usize,
+                    id.as_ref().map(|i| i.to_string()),
+                ));
                 Visiting::Ignore
             }
             _ => {
@@ -283,23 +298,17 @@ impl<'a> MarkdownRender<'a> {
         }
     }
 
-    fn visit_end_tag(&mut self, tag: &Tag<'a>) -> Visiting {
+    fn visit_end_tag(&mut self, tag: &TagEnd) -> Visiting {
         match tag {
-            Tag::Image(_, src, title) => {
-                let alt = self.image_alt.take().unwrap_or_else(|| CowStr::from(""));
+            TagEnd::Image => {
                 self.processing_image = false;
-
-                // Add loading="lazy" attribute for markdown image.
-                Visiting::Event(Event::Html(
-                    format!("<img src=\"{src}\" alt=\"{alt}\" title=\"{title}\" loading=\"lazy\">")
-                        .into(),
-                ))
+                Visiting::Ignore
             }
-            Tag::CodeBlock(_) => {
+            TagEnd::CodeBlock => {
                 self.code_block_fenced = None;
                 Visiting::Ignore
             }
-            Tag::Heading(..) => {
+            TagEnd::Heading(..) => {
                 if let Some(mut heading) = self.curr_heading.take() {
                     self.levels.insert(heading.toc.level);
                     // Render heading event.

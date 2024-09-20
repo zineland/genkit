@@ -1,5 +1,5 @@
 use pulldown_cmark::Event::{Code, End, HardBreak, Rule, SoftBreak, Start, Text};
-use pulldown_cmark::{Options, Parser, Tag};
+use pulldown_cmark::{Options, Parser, Tag, TagEnd};
 
 mod render;
 mod visitor;
@@ -121,7 +121,7 @@ pub fn count_words(markdown: &str) -> usize {
 fn start_tag(tag: &Tag, buffer: &mut String) {
     match tag {
         Tag::CodeBlock(_) | Tag::List(_) => fresh_line(buffer),
-        Tag::Link(_, _, title) => {
+        Tag::Link { title, .. } => {
             if !title.is_empty() {
                 buffer.push_str(title);
             }
@@ -130,15 +130,15 @@ fn start_tag(tag: &Tag, buffer: &mut String) {
     }
 }
 
-fn end_tag(tag: &Tag, buffer: &mut String) {
+fn end_tag(tag: &TagEnd, buffer: &mut String) {
     match tag {
-        Tag::Table(_)
-        | Tag::TableHead
-        | Tag::TableRow
-        | Tag::Heading(..)
-        | Tag::BlockQuote
-        | Tag::CodeBlock(_)
-        | Tag::Item => fresh_line(buffer),
+        TagEnd::Table
+        | TagEnd::TableHead
+        | TagEnd::TableRow
+        | TagEnd::Heading { .. }
+        | TagEnd::BlockQuote(..)
+        | TagEnd::CodeBlock
+        | TagEnd::Item => fresh_line(buffer),
         _ => (),
     }
 }
